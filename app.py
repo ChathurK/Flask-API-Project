@@ -1,5 +1,7 @@
+import uuid;
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.mysql import CHAR
 
 app = Flask(__name__)
 
@@ -11,6 +13,7 @@ db = SQLAlchemy(app)
 # User model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    # id = db.Column(CHAR(36), primary_key=True, unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
     name = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(50), unique=True, nullable=False)
 
@@ -89,7 +92,7 @@ def delete_user(user_id):
 
     db.session.delete(user)
     db.session.commit()
-    
+
     return jsonify({"message": "User deleted"}), 200
 
 if __name__ == '__main__':
