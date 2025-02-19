@@ -36,16 +36,15 @@ def home():
 # Get all users
 @app.route('/users', methods=['GET'])
 def get_users():
-    if not users:
-        return jsonify({"message": "No users found"}), 200
-    return jsonify(users), 200
+    users = User.query.all()
+    return jsonify([user.to_dict() for user in users]), 200
 
 # Get a single user by ID
 @app.route('/users/<int:user_id>', methods=['GET'])
 def get_user(user_id):
-    user = next((u for u in users if u["id"] == user_id), None)
+    user = User.query.get(user_id)
     if user:
-        return jsonify(user), 200
+        return jsonify(user.to_dict()), 200
     return jsonify({"error": "User not found"}), 404
 
 # Add a new user
@@ -55,38 +54,42 @@ def add_user():
     if not data or "name" not in data or "email" not in data:
         return jsonify({"error": "Invalid input"}), 400
 
-    new_user = {
-        "id": users[-1]["id"] + 1 if users else 1,
-        "name": data["name"],
-        "email": data["email"]
-    }
-    users.append(new_user)
-    return jsonify(new_user), 201
+    new_user=User(name=data["name"], email=data["email"])
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify(new_user.to_dict()), 201
 
 # Update an existing user
 @app.route('/users/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
     data = request.get_json()
-    user = next((u for u in users if u["id"] == user_id), None)
+    user = User.query.get(user_id)
 
     if not user:
         return jsonify({"error": "User not found"}), 404
 
     if "name" in data:
-        user["name"] = data["name"]
+        user.name = data["name"]
     if "email" in data:
-        user["email"] = data["email"]
+        user.email = data["email"]
 
-    return jsonify(user), 200
+    db.session.commit()
+
+    return jsonify(user.to_dict()), 200
 
 # Delete a user
 @app.route('/users/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
     global users
-    user = next((u for u in users if u["id"] == user_id), None)
+    user = User.query.get(user_id)
+    
     if not user:
         return jsonify({"error": "User not found"}), 404
-    users = [u for u in users if u["id"] != user_id]
+
+    db.session.delete(user)
+    db.session.commit()
+    
     return jsonify({"message": "User deleted"}), 200
 
 if __name__ == '__main__':
